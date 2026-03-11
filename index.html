@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VisitPlanner</title>
+
+<style>
+  :root {
+    --bg: #F0F4FF;
+    --surface: #FFFFFF;
+    --accent: #4F46E5;
+    --accent-light: #818CF8;
+    --accent-pale: #EEF2FF;
+    --accent2: #0EA5E9;
+    --warn: #EF4444;
+    --warn-pale: #FEF2F2;
+    --warn-soon: #F59E0B;
+    --warn-soon-pale: #FFFBEB;
+    --success: #10B981;
+    --success-pale: #ECFDF5;
+    --nostage: #94A3B8;
+    --nostage-pale: #F1F5F9;
+    --text: #0F172A;
+    --text-muted: #64748B;
+    --border: #E2E8F0;
+    --shadow: 0 1px 8px rgba(15,23,42,0.07);
+    --shadow-md: 0 4px 20px rgba(15,23,42,0.10);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* LOGIN */
+  #loginScreen {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: linear-gradient(135deg, #4F46E5 0%, #0EA5E9 100%);
+  }
+  .login-card {
+    background: var(--surface);
+    border-radius: 24px;
+    padding: 44px 40px;
+    width: 100%;
+    max-width: 380px;
+    box-shadow: 0 24px 64px rgba(79,70,229,0.25);
+    text-align: center;
+    animation: slideUp 0.35s ease;
+  }
+  .login-logo {
+    width: 64px; height: 64px;
+    background: linear-gradient(135deg, #4F46E5, #0EA5E9);
+    border-radius: 18px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.8rem;
+    margin: 0 auto 20px;
+    box-shadow: 0 8px 24px rgba(79,70,229,0.3);
+  }
+  .login-card h1 { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 1.7rem; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+  .login-card p { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 28px; }
+  .login-input {
+    width: 100%; padding: 13px 16px; border-radius: 12px; border: 1.5px solid var(--border);
+    background: var(--bg); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 1rem;
+    color: var(--text); outline: none; margin-bottom: 12px; text-align: center;
+    letter-spacing: 0.05em; transition: border 0.15s;
+  }
+  .login-input:focus { border-color: var(--accent-light); }
+  .login-input.error { border-color: var(--warn); animation: shake 0.3s ease; }
+  .login-btn {
+    width: 100%; padding: 13px;
+    background: linear-gradient(135deg, #4F46E5, #0EA5E9);
+    color: white; border: none; border-radius: 12px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 1rem; font-weight: 600;
+    cursor: pointer; transition: opacity 0.15s;
+    box-shadow: 0 4px 16px rgba(79,70,229,0.3);
+  }
+  .login-btn:hover { opacity: 0.92; }
+  .login-error { color: var(--warn); font-size: 0.85rem; margin-top: 10px; display: none; }
+
+  #mainApp { display: none; }
+
+  /* HEADER */
+  header {
+    background: linear-gradient(135deg, #4F46E5 0%, #0EA5E9 100%);
+    color: white;
+    padding: 0 24px;
+    position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 2px 20px rgba(79,70,229,0.25);
+  }
+  .header-inner {
+    max-width: 960px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 14px 0;
+  }
+  .header-brand { display: flex; align-items: center; gap: 12px; }
+  .header-logo {
+    width: 38px; height: 38px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem;
+    backdrop-filter: blur(4px);
+  }
+  .header-title { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 1.4rem; font-weight: 600; letter-spacing: -0.01em; }
+  .header-sub { font-size: 0.72rem; opacity: 0.7; margin-top: 1px; display: flex; align-items: center; gap: 5px; }
+  .sync-dot { width: 6px; height: 6px; border-radius: 50%; background: #6EE7B7; display: inline-block; }
+  .sync-dot.syncing { background: #FCD34D; animation: pulse 1s infinite; }
+  .sync-dot.error { background: #FCA5A5; }
+  .header-right { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .header-btn {
+    background: rgba(255,255,255,0.15);
+    color: white; border: 1px solid rgba(255,255,255,0.25);
+    padding: 8px 16px; border-radius: 10px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 0.82rem; font-weight: 500;
+    cursor: pointer; transition: background 0.15s; backdrop-filter: blur(4px);
+  }
+  .header-btn:hover { background: rgba(255,255,255,0.25); }
+  .header-btn.primary {
+    background: white; color: var(--accent);
+    font-weight: 600; border-color: white;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  .header-btn.primary:hover { background: #f0f0ff; }
+
+  /* MAIN */
+  main { max-width: 960px; margin: 0 auto; padding: 28px 20px; }
+
+  /* STATS */
+  .stats-bar { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+  .stat-card {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 9px 12px;
+    flex: 1; min-width: 70px;
+    text-align: center;
+    box-shadow: var(--shadow);
+    cursor: pointer;
+    transition: all 0.18s;
+    user-select: none;
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--border);
+    transition: background 0.18s;
+  }
+  .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+  .stat-card.active::before { background: var(--accent); }
+  .stat-card.active { border-color: var(--accent); background: var(--accent-pale); }
+  .stat-card.active-soon::before { background: var(--warn-soon); }
+  .stat-card.active-soon { border-color: var(--warn-soon); background: var(--warn-soon-pale); }
+  .stat-card.active-warn::before { background: var(--warn); }
+  .stat-card.active-warn { border-color: var(--warn); background: var(--warn-pale); }
+  .stat-card.active-gray::before { background: var(--nostage); }
+  .stat-card.active-gray { border-color: var(--nostage); background: var(--nostage-pale); }
+  .stat-number { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 1.35rem; font-weight: 600; color: var(--accent); line-height: 1; letter-spacing: -0.02em; }
+  .stat-card.warn .stat-number { color: var(--warn); }
+  .stat-card.soon .stat-number { color: var(--warn-soon); }
+  .stat-card.gray .stat-number { color: var(--nostage); }
+  .stat-label { font-size: 0.65rem; color: var(--text-muted); margin-top: 3px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+  .stat-card.pulse-warn { animation: pulseWarn 2s infinite; }
+  @keyframes pulseWarn {
+    0%,100% { box-shadow: var(--shadow); }
+    50% { box-shadow: 0 0 0 4px rgba(239,68,68,0.15); }
+  }
+
+  .filter-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; font-size: 0.85rem; color: var(--text-muted); min-height: 28px; }
+  .filter-tag { display: inline-flex; align-items: center; gap: 6px; background: var(--accent-pale); color: var(--accent); border-radius: 20px; padding: 5px 14px; font-size: 0.82rem; font-weight: 600; cursor: pointer; border: 1px solid #c7d2fe; }
+  .filter-tag:hover { background: #e0e7ff; }
+
+  .search-bar {
+    width: 100%; padding: 12px 18px; border-radius: 12px;
+    border: 1.5px solid var(--border); background: var(--surface);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 0.95rem;
+    margin-bottom: 20px; outline: none; transition: all 0.15s;
+    box-shadow: var(--shadow);
+  }
+  .search-bar:focus { border-color: var(--accent-light); box-shadow: 0 0 0 3px rgba(79,70,229,0.08); }
+
+  .section-label {
+    font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.1em; color: var(--text-muted);
+    margin-bottom: 10px; margin-top: 4px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  /* CARDS */
+  .student-card {
+    background: var(--surface);
+    border-radius: 16px;
+    border: 1.5px solid var(--border);
+    padding: 18px 20px;
+    margin-bottom: 10px;
+    box-shadow: var(--shadow);
+    transition: all 0.2s;
+    animation: fadeIn 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .student-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 4px;
+    background: var(--success);
+    border-radius: 4px 0 0 4px;
+  }
+  .student-card.overdue::before { background: var(--warn); }
+  .student-card.due-soon::before { background: var(--warn-soon); }
+  .student-card.no-stage::before { background: var(--nostage); }
+  .student-card.novisit::before { background: var(--border); }
+  .student-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+
+  .student-name { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+  .stage-place { font-size: 0.88rem; font-weight: 600; color: var(--accent); }
+  .stage-address { font-size: 0.8rem; color: var(--text-muted); margin-top: 1px; }
+
+  .card-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; align-items: center; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600;
+  }
+  .badge-green { background: var(--success-pale); color: #059669; }
+  .badge-red { background: var(--warn-pale); color: var(--warn); }
+  .badge-yellow { background: var(--warn-soon-pale); color: #D97706; }
+  .badge-gray { background: var(--nostage-pale); color: var(--text-muted); }
+  .badge-nostage { background: var(--nostage-pale); color: var(--nostage); }
+  .badge-days { background: var(--accent-pale); color: var(--accent); }
+
+  .card-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
+
+  .card-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 16px; margin-top: 6px; font-size: 0.8rem; color: var(--text-muted); }
+  .card-info-grid span { display: flex; align-items: center; gap: 4px; }
+  .vrije-info { margin-top: 8px; font-size: 0.8rem; color: var(--text-muted); background: var(--bg); padding: 8px 12px; border-radius: 8px; border-left: 3px solid var(--border); }
+
+  /* COLLAPSE */
+  .card-summary { display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
+  .card-summary:hover .student-name { color: var(--accent); }
+  .card-chevron { margin-left: auto; color: var(--text-muted); font-size: 0.8rem; transition: transform 0.22s ease; flex-shrink: 0; }
+  .student-card.expanded .card-chevron { transform: rotate(180deg); }
+  .card-details { display: none; margin-top: 12px; border-top: 1px solid var(--border); padding-top: 12px; animation: fadeIn 0.2s ease; }
+  .student-card.expanded .card-details { display: block; }
+
+  /* STATUS DOT */
+  .status-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; margin-top: 7px; }
+  .dot-red { background: var(--warn); box-shadow: 0 0 0 3px rgba(239,68,68,0.15); }
+  .dot-yellow { background: var(--warn-soon); box-shadow: 0 0 0 3px rgba(245,158,11,0.15); }
+  .dot-green { background: var(--success); box-shadow: 0 0 0 3px rgba(16,185,129,0.15); }
+  .dot-gray { background: var(--nostage); }
+
+  /* BUTTONS */
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 10px; border: none; cursor: pointer; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 0.85rem; font-weight: 600; transition: all 0.15s; }
+  .btn-accent { background: var(--accent); color: white; box-shadow: 0 2px 8px rgba(79,70,229,0.25); }
+  .btn-accent:hover { background: #4338CA; }
+  .btn-danger { background: var(--warn-pale); color: var(--warn); }
+  .btn-danger:hover { background: #fee2e2; }
+  .btn-sm { padding: 6px 13px; font-size: 0.8rem; }
+  .btn-ghost { background: var(--bg); color: var(--text-muted); border: 1.5px solid var(--border); }
+  .btn-ghost:hover { background: var(--border); }
+
+  /* DAYS PICKER */
+  .days-picker { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 2px; }
+  .day-btn {
+    width: 38px; height: 38px; border-radius: 50%;
+    border: 1.5px solid var(--border); background: var(--bg);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 0.75rem; font-weight: 700;
+    color: var(--text-muted); cursor: pointer; transition: all 0.15s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .day-btn.selected { background: var(--accent); color: white; border-color: var(--accent); box-shadow: 0 2px 8px rgba(79,70,229,0.3); }
+  .day-btn:hover:not(.selected) { border-color: var(--accent-light); color: var(--accent); }
+
+  /* MODAL */
+  .overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.4); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 16px; animation: fadeIn 0.2s ease; backdrop-filter: blur(2px); }
+  .modal { background: var(--surface); border-radius: 20px; padding: 28px 28px 24px; width: 100%; max-width: 500px; box-shadow: 0 24px 64px rgba(15,23,42,0.18); animation: slideUp 0.25s ease; max-height: 92vh; overflow-y: auto; }
+  .modal h2 { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 1.3rem; font-weight: 700; margin-bottom: 20px; color: var(--text); }
+  .form-section { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); margin: 18px 0 10px; padding-bottom: 6px; border-bottom: 1.5px solid var(--accent-pale); }
+  .form-group { margin-bottom: 13px; }
+  label { display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.05em; }
+  input, select, textarea { width: 100%; padding: 10px 14px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 0.93rem; color: var(--text); outline: none; transition: border 0.15s; }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent-light); box-shadow: 0 0 0 3px rgba(79,70,229,0.08); }
+  textarea { resize: vertical; min-height: 70px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; background: var(--bg); padding: 10px 14px; border-radius: 10px; border: 1.5px solid var(--border); margin-bottom: 14px; }
+  .toggle-row label { margin: 0; text-transform: none; font-size: 0.9rem; color: var(--text); letter-spacing: 0; font-weight: 500; }
+  .toggle { position: relative; width: 42px; height: 24px; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider { position: absolute; cursor: pointer; inset: 0; background: #CBD5E1; border-radius: 24px; transition: 0.2s; }
+  .toggle-slider:before { content: ''; position: absolute; height: 18px; width: 18px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.2s; box-shadow: 0 1px 4px rgba(0,0,0,0.15); }
+  .toggle input:checked + .toggle-slider { background: var(--accent); }
+  .toggle input:checked + .toggle-slider:before { transform: translateX(18px); }
+
+  /* BEHEER */
+  .beheer-tabs { display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 20px; }
+  .beheer-tab { padding: 10px 20px; font-size: 0.88rem; font-weight: 600; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.15s; }
+  .beheer-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .beheer-tab:hover { color: var(--accent); }
+  .beheer-panel { display: none; }
+  .beheer-panel.active { display: block; }
+  .beheer-add-row { display: flex; gap: 8px; margin-bottom: 14px; }
+  .beheer-add-row input { flex: 1; }
+  .beheer-list { display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto; }
+  .beheer-item { display: flex; align-items: center; justify-content: space-between; background: var(--bg); border: 1.5px solid var(--border); border-radius: 10px; padding: 9px 14px; font-size: 0.88rem; }
+  .beheer-item-del { background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 1rem; padding: 2px 6px; border-radius: 4px; transition: color 0.15s; }
+  .beheer-item-del:hover { color: var(--warn); }
+  .beheer-empty { text-align: center; padding: 28px; color: var(--text-muted); font-size: 0.85rem; }
+
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+  .empty-state .icon { font-size: 3rem; margin-bottom: 12px; }
+  .empty-state h3 { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 1.3rem; color: var(--text); }
+  .empty-state p { font-size: 0.88rem; margin-top: 6px; }
+  .loading { text-align: center; padding: 60px 20px; color: var(--text-muted); font-size: 0.95rem; }
+
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+
+  @media (max-width: 600px) {
+    .modal { padding: 22px 18px 18px; }
+    .login-card { padding: 32px 22px; }
+    .form-row { grid-template-columns: 1fr; }
+    .card-info-grid { grid-template-columns: 1fr; }
+    header { padding: 0 16px; }
+    main { padding: 20px 14px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">📋</div>
+    <h1>VisitPlanner</h1>
+    <p>Voer je wachtwoord in om door te gaan</p>
+    <input class="login-input" type="password" id="pwInput" placeholder="Wachtwoord" onkeydown="if(event.key==='Enter')checkLogin()">
+    <button class="login-btn" onclick="checkLogin()">Inloggen →</button>
+    <div class="login-error" id="loginError">Onjuist wachtwoord, probeer opnieuw.</div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="mainApp">
+  <header>
+    <div class="header-inner">
+      <div class="header-brand">
+        <div class="header-logo">📋</div>
+        <div>
+          <div class="header-title">VisitPlanner</div>
+          <div class="header-sub">
+            <span class="sync-dot syncing" id="syncDot"></span>
+            <span id="syncText">Verbinden...</span>
+          </div>
+        </div>
+      </div>
+      <div class="header-right">
+        <button class="header-btn primary" onclick="openModal()">+ Leerling</button>
+        <button class="header-btn" onclick="openBeheer()">⚙️ Beheer</button>
+        <button class="header-btn" onclick="logout()">Uitloggen</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="stats-bar" id="statsBar"></div>
+    <div class="filter-bar" id="filterBar"></div>
+    <input class="search-bar" type="text" id="searchInput" placeholder="🔍 Zoek op naam, klas, stageplaats of adres..." oninput="renderList()">
+    <div id="app"><div class="loading">⏳ Gegevens laden...</div></div>
+  </main>
+</div>
+
+<!-- STUDENT MODAL -->
+<div class="overlay" id="overlay" style="display:none" onclick="closeIfOutside(event)">
+  <div class="modal">
+    <h2 id="modalTitle">Leerling toevoegen</h2>
+    <div class="toggle-row">
+      <label for="f-geenstage">🚫 Geen stage (momenteel)</label>
+      <label class="toggle"><input type="checkbox" id="f-geenstage" onchange="toggleStageFields()"><span class="toggle-slider"></span></label>
+    </div>
+    <div class="form-section">Leerling</div>
+    <div class="form-row">
+      <div class="form-group"><label>Naam leerling</label><input id="f-naam" type="text" placeholder="Bijv. Emma de Vries"></div>
+      <div class="form-group"><label>Klas</label><select id="f-klas"><option value="">— Selecteer klas —</option></select></div>
+    </div>
+    <div class="form-group"><label>Mentor</label><select id="f-mentor"><option value="">— Selecteer mentor —</option></select></div>
+
+    <div id="stageFields">
+      <div class="form-section">Stageplaats</div>
+      <div class="form-group"><label>Naam stageplaats</label><input id="f-bedrijf" type="text" placeholder="Naam bedrijf of organisatie"></div>
+      <div class="form-group"><label>Adres stageplaats</label><input id="f-adres" type="text" placeholder="Straat + huisnummer, Plaats"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Begeleider stageplaats</label><input id="f-begeleider" type="text" placeholder="Naam begeleider"></div>
+        <div class="form-group"><label>Telefoonnummer</label><input id="f-telefoon" type="tel" placeholder="06-12345678"></div>
+      </div>
+      <div class="form-section">Stagedagen</div>
+      <div class="form-group">
+        <label>Dagen op stage</label>
+        <div class="days-picker" id="daysPicker">
+          <button type="button" class="day-btn" data-day="ma" onclick="toggleDay('ma')">Ma</button>
+          <button type="button" class="day-btn" data-day="di" onclick="toggleDay('di')">Di</button>
+          <button type="button" class="day-btn" data-day="wo" onclick="toggleDay('wo')">Wo</button>
+          <button type="button" class="day-btn" data-day="do" onclick="toggleDay('do')">Do</button>
+          <button type="button" class="day-btn" data-day="vr" onclick="toggleDay('vr')">Vr</button>
+          <button type="button" class="day-btn" data-day="za" onclick="toggleDay('za')">Za</button>
+          <button type="button" class="day-btn" data-day="zo" onclick="toggleDay('zo')">Zo</button>
+        </div>
+      </div>
+      <div class="form-section">Bezoek</div>
+      <div class="form-group"><label>Laatste bezoekdatum</label><input id="f-datum" type="date"></div>
+      <div class="form-group">
+        <label>Bezoekinterval</label>
+        <select id="f-interval">
+          <option value="14">Elke 2 weken</option>
+          <option value="21">Elke 3 weken</option>
+          <option value="28">Elke 4 weken</option>
+          <option value="42" selected>Elke 6 weken</option>
+          <option value="56">Elke 8 weken</option>
+          <option value="custom">Aangepast (dagen)</option>
+          <option value="0">Geen bezoek nodig</option>
+        </select>
+        <input id="f-interval-custom" type="number" placeholder="Aantal dagen" style="display:none;margin-top:8px;" min="1">
+      </div>
+    </div>
+
+    <div class="form-section">Overig</div>
+    <div class="form-group"><label>Vrije informatie</label><textarea id="f-vrij" placeholder="Bijv. bijzonderheden, afspraken, aandachtspunten..."></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Annuleren</button>
+      <button class="btn btn-accent" onclick="saveStudent()">Opslaan</button>
+    </div>
+  </div>
+</div>
+
+<!-- BEZOEK MODAL -->
+<div class="overlay" id="visitOverlay" style="display:none" onclick="closeVisitIfOutside(event)">
+  <div class="modal">
+    <h2>Bezoek registreren</h2>
+    <p style="font-size:0.88rem;color:var(--text-muted);margin-bottom:18px;" id="visitStudentName"></p>
+    <div class="form-group"><label>Bezoekdatum</label><input id="v-datum" type="date"></div>
+    <div class="form-group"><label>Notitie (optioneel)</label><input id="v-notitie" type="text" placeholder="Bijv. goed gesprek, aandachtspunt..."></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeVisitModal()">Annuleren</button>
+      <button class="btn btn-accent" onclick="saveVisit()">Bezoek opslaan</button>
+    </div>
+  </div>
+</div>
+
+<!-- BEHEER MODAL -->
+<div class="overlay" id="beheerOverlay" style="display:none" onclick="closeBeheerIfOutside(event)">
+  <div class="modal" style="max-width:460px">
+    <h2>⚙️ Beheer</h2>
+    <div class="beheer-tabs">
+      <div class="beheer-tab active" onclick="switchTab('klassen')">Klassen</div>
+      <div class="beheer-tab" onclick="switchTab('mentoren')">Mentoren</div>
+    </div>
+    <div class="beheer-panel active" id="panel-klassen">
+      <div class="beheer-add-row">
+        <input type="text" id="nieuw-klas" placeholder="Bijv. 3A of 4B" onkeydown="if(event.key==='Enter')addItem('klassen')">
+        <button class="btn btn-accent btn-sm" onclick="addItem('klassen')">+ Toevoegen</button>
+      </div>
+      <div class="beheer-list" id="list-klassen"></div>
+    </div>
+    <div class="beheer-panel" id="panel-mentoren">
+      <div class="beheer-add-row">
+        <input type="text" id="nieuw-mentor" placeholder="Naam van de mentor" onkeydown="if(event.key==='Enter')addItem('mentoren')">
+        <button class="btn btn-accent btn-sm" onclick="addItem('mentoren')">+ Toevoegen</button>
+      </div>
+      <div class="beheer-list" id="list-mentoren"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeBeheer()">Sluiten</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDsdH-Y2IaXqR-96DwQUzDpnp7ma2u5Tnw",
+    authDomain: "stagetrack-8d828.firebaseapp.com",
+    projectId: "stagetrack-8d828",
+    storageBucket: "stagetrack-8d828.firebasestorage.app",
+    messagingSenderId: "587283767980",
+    appId: "1:587283767980:web:7e582cc1ddc75ae4423509"
+  };
+
+  const fbApp = initializeApp(firebaseConfig);
+  const db = getFirestore(fbApp);
+  const col = collection(db, "leerlingen");
+  const instellingenDoc = doc(db, "instellingen", "lijsten");
+
+  function setSyncStatus(status) {
+    const dot = document.getElementById('syncDot');
+    const txt = document.getElementById('syncText');
+    if (status === 'ok') { dot.className = 'sync-dot'; txt.textContent = 'Gesynchroniseerd ✓'; }
+    else if (status === 'syncing') { dot.className = 'sync-dot syncing'; txt.textContent = 'Synchroniseren...'; }
+    else { dot.className = 'sync-dot error'; txt.textContent = 'Verbindingsfout'; }
+  }
+
+  let unsubscribe = null;
+  window._startSync = function() {
+    if (unsubscribe) return;
+    setSyncStatus('syncing');
+    unsubscribe = onSnapshot(col, (snapshot) => {
+      window._students = [];
+      snapshot.forEach(d => window._students.push({ id: d.id, ...d.data() }));
+      setSyncStatus('ok');
+      if (window.renderList) window.renderList();
+    }, () => setSyncStatus('error'));
+
+    onSnapshot(instellingenDoc, (snap) => {
+      window._klassen = snap.exists() ? (snap.data().klassen || []) : [];
+      window._mentoren = snap.exists() ? (snap.data().mentoren || []) : [];
+      if (window.renderBeheerLists) window.renderBeheerLists();
+      if (window.populateSelects) window.populateSelects();
+    });
+  };
+
+  window._db = {
+    add: (data) => addDoc(col, data),
+    update: (id, data) => updateDoc(doc(db, "leerlingen", id), data),
+    delete: (id) => deleteDoc(doc(db, "leerlingen", id)),
+    saveInstellingen: (k, m) => setDoc(instellingenDoc, { klassen: k, mentoren: m })
+  };
+</script>
+
+<script>
+  window._students = [];
+  window._klassen = [];
+  window._mentoren = [];
+  let editId = null, visitId = null, activeFilter = null;
+  let selectedDays = [];
+  const DAGEN = ['ma','di','wo','do','vr','za','zo'];
+  const DAGEN_LABEL = { ma:'Ma', di:'Di', wo:'Wo', do:'Do', vr:'Vr', za:'Za', zo:'Zo' };
+
+  // LOGIN
+  function checkLogin() {
+    const pw = document.getElementById('pwInput').value;
+    const input = document.getElementById('pwInput');
+    if (pw === 'DwayneCurio2904!') {
+      sessionStorage.setItem('sb_auth', '1');
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('mainApp').style.display = 'block';
+      window._startSync();
+    } else {
+      input.classList.add('error');
+      document.getElementById('loginError').style.display = 'block';
+      setTimeout(() => input.classList.remove('error'), 400);
+    }
+  }
+
+  function logout() {
+    sessionStorage.removeItem('sb_auth');
+    document.getElementById('mainApp').style.display = 'none';
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('pwInput').value = '';
+    document.getElementById('loginError').style.display = 'none';
+  }
+
+  if (sessionStorage.getItem('sb_auth') === '1') {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('mainApp').style.display = 'block';
+    setTimeout(() => window._startSync && window._startSync(), 100);
+  }
+
+  window.checkLogin = checkLogin;
+  window.logout = logout;
+
+  // DAYS
+  window.toggleDay = function(day) {
+    selectedDays = selectedDays.includes(day) ? selectedDays.filter(d => d !== day) : [...selectedDays, day];
+    document.querySelectorAll('.day-btn').forEach(btn => btn.classList.toggle('selected', selectedDays.includes(btn.dataset.day)));
+  };
+
+  function setSelectedDays(days) {
+    selectedDays = days || [];
+    document.querySelectorAll('.day-btn').forEach(btn => btn.classList.toggle('selected', selectedDays.includes(btn.dataset.day)));
+  }
+
+  function formatDays(days) {
+    if (!days || !days.length) return '';
+    return DAGEN.filter(d => days.includes(d)).map(d => DAGEN_LABEL[d]).join(' · ');
+  }
+
+  // SELECTS
+  window.populateSelects = function() {
+    const ks = document.getElementById('f-klas');
+    const ms = document.getElementById('f-mentor');
+    if (!ks || !ms) return;
+    const ck = ks.value, cm = ms.value;
+    ks.innerHTML = '<option value="">— Selecteer klas —</option>' + (window._klassen||[]).sort().map(k=>`<option value="${k}">${k}</option>`).join('');
+    ms.innerHTML = '<option value="">— Selecteer mentor —</option>' + (window._mentoren||[]).sort().map(m=>`<option value="${m}">${m}</option>`).join('');
+    if (ck) ks.value = ck;
+    if (cm) ms.value = cm;
+  };
+
+  // STATUS
+  function getDaysUntilNext(s) {
+    if (s.geenstage || s.interval == 0) return 9999;
+    const next = new Date(s.datum); next.setDate(next.getDate() + s.interval);
+    const today = new Date(); today.setHours(0,0,0,0);
+    return Math.round((next - today) / 86400000);
+  }
+
+  function getStatus(s) {
+    if (s.geenstage) return 'nostage';
+    if (s.interval == 0) return 'novisit';
+    const d = getDaysUntilNext(s);
+    if (d < 0) return 'overdue';
+    if (d <= 7) return 'soon';
+    return 'ok';
+  }
+
+  function formatDate(str) {
+    if (!str) return '—';
+    return new Date(str).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+
+  // FILTER
+  function setFilter(f) { activeFilter = activeFilter === f ? null : f; renderList(); }
+  window.setFilter = setFilter;
+  window.clearFilter = () => { activeFilter = null; renderList(); };
+
+  // STATS
+  function renderStats() {
+    const all = window._students || [];
+    const total = all.length;
+    const metStage = all.filter(s => !s.geenstage).length;
+    const zonderStage = all.filter(s => s.geenstage).length;
+    const telLaat = all.filter(s => getStatus(s) === 'overdue').length;
+    const dezeWeek = all.filter(s => getStatus(s) === 'soon').length;
+    const af = activeFilter;
+
+    document.getElementById('statsBar').innerHTML = `
+      <div class="stat-card ${af==='all'?'active':''}" onclick="setFilter('all')">
+        <div class="stat-number" style="color:var(--text)">${total}</div>
+        <div class="stat-label">Totaal</div>
+      </div>
+      <div class="stat-card ${af==='stage'?'active':''}" onclick="setFilter('stage')">
+        <div class="stat-number">${metStage}</div>
+        <div class="stat-label">Met stage</div>
+      </div>
+      <div class="stat-card gray ${af==='nostage'?'active-gray':''}" onclick="setFilter('nostage')">
+        <div class="stat-number">${zonderStage}</div>
+        <div class="stat-label">Zonder stage</div>
+      </div>
+      ${dezeWeek > 0 ? `<div class="stat-card soon ${af==='soon'?'active-soon':''}" onclick="setFilter('soon')">
+        <div class="stat-number">${dezeWeek}</div>
+        <div class="stat-label">Deze week</div>
+      </div>` : ''}
+      ${telLaat > 0 ? `<div class="stat-card warn ${telLaat>0?'pulse-warn':''} ${af==='telaat'?'active-warn':''}" onclick="setFilter('telaat')">
+        <div class="stat-number">${telLaat}</div>
+        <div class="stat-label">Te laat</div>
+      </div>` : ''}
+    `;
+  }
+
+  function renderFilterBar() {
+    const labels = { all:'Alle leerlingen', stage:'Met stage', nostage:'Zonder stage', telaat:'Bezoek te laat', soon:'Deze week aan de beurt' };
+    document.getElementById('filterBar').innerHTML = activeFilter
+      ? `<span>Gefilterd op:</span> <span class="filter-tag" onclick="clearFilter()"><span>${labels[activeFilter]}</span><span style="font-size:1rem;margin-left:2px">✕</span></span>`
+      : '';
+  }
+
+  // RENDER
+  window.renderList = function() {
+    renderStats();
+    renderFilterBar();
+    const query = (document.getElementById('searchInput')?.value || '').toLowerCase();
+    const appEl = document.getElementById('app');
+    if (!appEl) return;
+
+    let list = [...(window._students || [])];
+    if (activeFilter === 'stage') list = list.filter(s => !s.geenstage);
+    else if (activeFilter === 'nostage') list = list.filter(s => s.geenstage);
+    else if (activeFilter === 'telaat') list = list.filter(s => getStatus(s) === 'overdue');
+    else if (activeFilter === 'soon') list = list.filter(s => getStatus(s) === 'soon');
+
+    if (query) list = list.filter(s =>
+      (s.naam||'').toLowerCase().includes(query) ||
+      (s.klas||'').toLowerCase().includes(query) ||
+      (s.bedrijf||'').toLowerCase().includes(query) ||
+      (s.adres||'').toLowerCase().includes(query) ||
+      (s.mentor||'').toLowerCase().includes(query)
+    );
+
+    const sortByDays = (a,b) => getDaysUntilNext(a)-getDaysUntilNext(b);
+    const overdue = list.filter(s=>getStatus(s)==='overdue').sort(sortByDays);
+    const soon = list.filter(s=>getStatus(s)==='soon').sort(sortByDays);
+    const ok = list.filter(s=>getStatus(s)==='ok').sort(sortByDays);
+    const novisit = list.filter(s=>getStatus(s)==='novisit').sort((a,b)=>(a.naam||'').localeCompare(b.naam||''));
+    const nostage = list.filter(s=>getStatus(s)==='nostage').sort((a,b)=>(a.naam||'').localeCompare(b.naam||''));
+
+    if (!list.length) {
+      appEl.innerHTML = `<div class="empty-state"><div class="icon">🎓</div><h3>Geen leerlingen gevonden</h3><p>${query?'Probeer een andere zoekterm.':'Geen leerlingen in deze categorie.'}</p></div>`;
+      return;
+    }
+
+    let html = '';
+    if (activeFilter === 'telaat') {
+      html += `<div class="section-label">${list.length} leerling${list.length>1?'en':''} te laat</div>`;
+      html += list.map(cardHTML).join('');
+    } else if (activeFilter === 'nostage') {
+      html += `<div class="section-label">${list.length} leerling${list.length>1?'en':''} zonder stage</div>`;
+      html += list.map(cardHTML).join('');
+    } else if (activeFilter === 'soon') {
+      html += `<div class="section-label">${list.length} leerling${list.length>1?'en':''} deze week aan de beurt</div>`;
+      html += list.map(cardHTML).join('');
+    } else {
+      if (overdue.length) { html += `<div class="section-label">Bezoek nodig</div>`; html += overdue.map(cardHTML).join(''); }
+      if (soon.length) { html += `<div class="section-label" style="margin-top:${overdue.length?16:0}px">Deze week aan de beurt</div>`; html += soon.map(cardHTML).join(''); }
+      if (ok.length) { html += `<div class="section-label" style="margin-top:${(overdue.length||soon.length)?16:0}px">Planmatig op schema</div>`; html += ok.map(cardHTML).join(''); }
+      if (novisit.length) { html += `<div class="section-label" style="margin-top:16px">Geen bezoek nodig</div>`; html += novisit.map(cardHTML).join(''); }
+      if (nostage.length) { html += `<div class="section-label" style="margin-top:16px">Zonder stage</div>`; html += nostage.map(cardHTML).join(''); }
+    }
+
+    appEl.innerHTML = html;
+  };
+
+  function cardHTML(s) {
+    const status = getStatus(s);
+    let dotClass='dot-green', cardClass='', badgeHTML='';
+
+    if (status==='nostage') {
+      dotClass='dot-gray'; cardClass='no-stage';
+      badgeHTML=`<span class="badge badge-nostage">🚫 Geen stage</span>`;
+    } else if (status==='novisit') {
+      dotClass='dot-gray'; cardClass='novisit';
+      badgeHTML=`<span class="badge badge-gray">📋 Geen bezoek gepland</span>`;
+    } else {
+      const days=getDaysUntilNext(s);
+      const next=new Date(s.datum); next.setDate(next.getDate()+s.interval);
+      let daysText=`Over ${days} dag${days===1?'':'en'}`;
+      if (status==='overdue') { dotClass='dot-red'; cardClass='overdue'; daysText=`${Math.abs(days)} dag${Math.abs(days)===1?'':'en'} te laat`; badgeHTML=`<span class="badge badge-red">📅 ${formatDate(next.toISOString().split('T')[0])} — ${daysText}</span>`; }
+      else if (status==='soon') { dotClass='dot-yellow'; cardClass='due-soon'; daysText=days===0?'Vandaag!':`Over ${days} dag${days===1?'':'en'}`; badgeHTML=`<span class="badge badge-yellow">📅 ${formatDate(next.toISOString().split('T')[0])} — ${daysText}</span>`; }
+      else { badgeHTML=`<span class="badge badge-green">📅 ${formatDate(next.toISOString().split('T')[0])} — ${daysText}</span>`; }
+      badgeHTML += `<span class="badge badge-gray">Laatste: ${formatDate(s.datum)}</span>`;
+    }
+
+    if (s.stagedagen && s.stagedagen.length) badgeHTML += `<span class="badge badge-days">📆 ${formatDays(s.stagedagen)}</span>`;
+
+    const lastNote = s.notities?.length ? s.notities[s.notities.length-1] : null;
+    const infoItems = [
+      s.klas ? `<span>🎓 ${s.klas}</span>` : '',
+      s.mentor ? `<span>👤 ${s.mentor}</span>` : '',
+      s.begeleider ? `<span>🏢 ${s.begeleider}</span>` : '',
+      s.telefoon ? `<span>📞 <a href="tel:${s.telefoon}" style="color:var(--accent);text-decoration:none;">${s.telefoon}</a></span>` : '',
+    ].filter(Boolean).join('');
+
+    const visitBtn = (status!=='nostage'&&status!=='novisit')
+      ? `<button class="btn btn-accent btn-sm" onclick="openVisitModal('${s.id}')">✅ Bezoek registreren</button>` : '';
+
+    return `<div class="student-card ${cardClass}" id="card-${s.id}">
+      <div class="card-summary" onclick="toggleCard('${s.id}')">
+        <div class="status-dot ${dotClass}" style="margin-top:2px;flex-shrink:0"></div>
+        <div style="flex:1;min-width:0">
+          <div class="student-name">${s.naam}</div>
+          ${s.bedrijf?`<div class="stage-place" style="font-size:0.83rem">${s.bedrijf}</div>`:''}
+        </div>
+        ${visitBtn ? `<span onclick="event.stopPropagation()">${visitBtn}</span>` : ''}
+        <span class="card-chevron">▼</span>
+      </div>
+      <div class="card-details">
+        <div class="card-meta">${badgeHTML}</div>
+        ${s.adres?`<div class="stage-address" style="margin-top:8px">📍 ${s.adres}</div>`:''}
+        ${infoItems?`<div class="card-info-grid" style="margin-top:8px">${infoItems}</div>`:''}
+        ${s.vrij?`<div class="vrije-info">📝 ${s.vrij}</div>`:''}
+        ${lastNote?`<div class="vrije-info" style="border-left-color:var(--accent-light);">💬 ${lastNote.tekst}</div>`:''}
+        <div class="card-actions" style="margin-top:12px;padding-top:10px">
+          <button class="btn btn-ghost btn-sm" onclick="openEditModal('${s.id}')">✏️ Bewerken</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteStudent('${s.id}')">🗑</button>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // TOGGLE CARD
+  window.toggleCard = function(id) {
+    const card = document.getElementById('card-' + id);
+    if (card) card.classList.toggle('expanded');
+  };
+    document.getElementById('stageFields').style.display = document.getElementById('f-geenstage').checked ? 'none' : 'block';
+  };
+
+  window.openModal = function(id=null) {
+    editId = id;
+    window.populateSelects();
+    document.getElementById('modalTitle').textContent = id ? 'Leerling bewerken' : 'Leerling toevoegen';
+    if (id) {
+      const s = window._students.find(x=>x.id===id);
+      document.getElementById('f-naam').value = s.naam||'';
+      document.getElementById('f-klas').value = s.klas||'';
+      document.getElementById('f-mentor').value = s.mentor||'';
+      document.getElementById('f-bedrijf').value = s.bedrijf||'';
+      document.getElementById('f-adres').value = s.adres||'';
+      document.getElementById('f-begeleider').value = s.begeleider||'';
+      document.getElementById('f-telefoon').value = s.telefoon||'';
+      document.getElementById('f-datum').value = s.datum||'';
+      document.getElementById('f-vrij').value = s.vrij||'';
+      document.getElementById('f-geenstage').checked = !!s.geenstage;
+      document.getElementById('stageFields').style.display = s.geenstage ? 'none' : 'block';
+      setSelectedDays(s.stagedagen||[]);
+      const known=['14','21','28','42','56','0'];
+      if (known.includes(String(s.interval))) {
+        document.getElementById('f-interval').value = String(s.interval);
+        document.getElementById('f-interval-custom').style.display = 'none';
+      } else {
+        document.getElementById('f-interval').value = 'custom';
+        document.getElementById('f-interval-custom').style.display = 'block';
+        document.getElementById('f-interval-custom').value = s.interval;
+      }
+    } else {
+      ['f-naam','f-bedrijf','f-adres','f-begeleider','f-telefoon','f-vrij'].forEach(i=>document.getElementById(i).value='');
+      document.getElementById('f-klas').value='';
+      document.getElementById('f-mentor').value='';
+      document.getElementById('f-datum').value=new Date().toISOString().split('T')[0];
+      document.getElementById('f-interval').value='42';
+      document.getElementById('f-interval-custom').style.display='none';
+      document.getElementById('f-geenstage').checked=false;
+      document.getElementById('stageFields').style.display='block';
+      setSelectedDays([]);
+    }
+    document.getElementById('overlay').style.display='flex';
+  };
+
+  window.openEditModal = id => window.openModal(id);
+  window.closeModal = () => { document.getElementById('overlay').style.display='none'; editId=null; };
+  window.closeIfOutside = e => { if(e.target===document.getElementById('overlay')) window.closeModal(); };
+
+  document.getElementById('f-interval').addEventListener('change', function() {
+    document.getElementById('f-interval-custom').style.display = this.value==='custom' ? 'block' : 'none';
+  });
+
+  window.saveStudent = async function() {
+    const naam = document.getElementById('f-naam').value.trim();
+    if (!naam) { alert('Vul minimaal een naam in.'); return; }
+    const geenstage = document.getElementById('f-geenstage').checked;
+    const sel = document.getElementById('f-interval').value;
+    const interval = sel==='custom' ? (parseInt(document.getElementById('f-interval-custom').value)||42) : parseInt(sel);
+    const datum = document.getElementById('f-datum').value;
+    if (!geenstage && !datum && interval!==0) { alert('Vul een bezoekdatum in.'); return; }
+    const data = {
+      naam, klas: document.getElementById('f-klas').value,
+      mentor: document.getElementById('f-mentor').value,
+      bedrijf: document.getElementById('f-bedrijf').value.trim(),
+      adres: document.getElementById('f-adres').value.trim(),
+      begeleider: document.getElementById('f-begeleider').value.trim(),
+      telefoon: document.getElementById('f-telefoon').value.trim(),
+      datum: geenstage ? '' : datum,
+      interval: geenstage ? 0 : interval,
+      vrij: document.getElementById('f-vrij').value.trim(),
+      geenstage,
+      stagedagen: geenstage ? [] : [...selectedDays],
+      notities: editId ? (window._students.find(x=>x.id===editId)?.notities||[]) : []
+    };
+    if (editId) { await window._db.update(editId, data); } else { await window._db.add(data); }
+    window.closeModal();
+  };
+
+  window.deleteStudent = async function(id) {
+    if (!confirm('Weet je zeker dat je deze leerling wilt verwijderen?')) return;
+    await window._db.delete(id);
+  };
+
+  // VISIT
+  window.openVisitModal = function(id) {
+    visitId=id;
+    const s=window._students.find(x=>x.id===id);
+    document.getElementById('visitStudentName').textContent=`${s.naam} — ${s.bedrijf||''}`;
+    document.getElementById('v-datum').value=new Date().toISOString().split('T')[0];
+    document.getElementById('v-notitie').value='';
+    document.getElementById('visitOverlay').style.display='flex';
+  };
+
+  window.closeVisitModal = () => { document.getElementById('visitOverlay').style.display='none'; visitId=null; };
+  window.closeVisitIfOutside = e => { if(e.target===document.getElementById('visitOverlay')) window.closeVisitModal(); };
+
+  window.saveVisit = async function() {
+    const datum=document.getElementById('v-datum').value;
+    const tekst=document.getElementById('v-notitie').value.trim();
+    if (!datum) { alert('Vul een datum in.'); return; }
+    const s=window._students.find(x=>x.id===visitId);
+    const notities=[...(s.notities||[])];
+    if (tekst) notities.push({datum,tekst});
+    await window._db.update(visitId,{datum,notities});
+    window.closeVisitModal();
+  };
+
+  // BEHEER
+  window.openBeheer = function() {
+    renderBeheerLists();
+    document.getElementById('beheerOverlay').style.display='flex';
+  };
+  window.closeBeheer = () => { document.getElementById('beheerOverlay').style.display='none'; };
+  window.closeBeheerIfOutside = e => { if(e.target===document.getElementById('beheerOverlay')) window.closeBeheer(); };
+
+  window.switchTab = function(tab) {
+    document.querySelectorAll('.beheer-tab').forEach((t,i) => t.classList.toggle('active',(i===0&&tab==='klassen')||(i===1&&tab==='mentoren')));
+    document.getElementById('panel-klassen').classList.toggle('active',tab==='klassen');
+    document.getElementById('panel-mentoren').classList.toggle('active',tab==='mentoren');
+  };
+
+  window.addItem = async function(type) {
+    const inputId = type==='klassen' ? 'nieuw-klas' : 'nieuw-mentor';
+    const val = document.getElementById(inputId).value.trim();
+    if (!val) return;
+    const list = type==='klassen' ? [...(window._klassen||[])] : [...(window._mentoren||[])];
+    if (list.includes(val)) { alert('Staat er al in!'); return; }
+    list.push(val);
+    document.getElementById(inputId).value='';
+    if (type==='klassen') await window._db.saveInstellingen(list, window._mentoren||[]);
+    else await window._db.saveInstellingen(window._klassen||[], list);
+  };
+
+  window.deleteItem = async function(type, val) {
+    if (!confirm(`"${val}" verwijderen?`)) return;
+    if (type==='klassen') await window._db.saveInstellingen((window._klassen||[]).filter(x=>x!==val), window._mentoren||[]);
+    else await window._db.saveInstellingen(window._klassen||[], (window._mentoren||[]).filter(x=>x!==val));
+  };
+
+  window.renderBeheerLists = function() {
+    const kl = (window._klassen||[]).sort();
+    const me = (window._mentoren||[]).sort();
+    document.getElementById('list-klassen').innerHTML = kl.length
+      ? kl.map(k=>`<div class="beheer-item"><span>🎓 ${k}</span><button class="beheer-item-del" onclick="deleteItem('klassen','${k}')">✕</button></div>`).join('')
+      : '<div class="beheer-empty">Nog geen klassen toegevoegd</div>';
+    document.getElementById('list-mentoren').innerHTML = me.length
+      ? me.map(m=>`<div class="beheer-item"><span>👤 ${m}</span><button class="beheer-item-del" onclick="deleteItem('mentoren','${m}')">✕</button></div>`).join('')
+      : '<div class="beheer-empty">Nog geen mentoren toegevoegd</div>';
+  };
+</script>
+</body>
+</html>
